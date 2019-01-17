@@ -45,4 +45,4 @@ If you wanted to include files specific to an about page, it would like like
 ```php
     $viewContext = new \FastFrontend\View\Context('about', $globalIncludes);
 ```
-This would then look to include files in `js/about` and `css/about` if files are added. Context directories are only intended to contain files, no recursion is done to find subdirectories will js/css.
+This would then look to include files in `js/about` and `css/about` if files are added. Context directories are only intended to contain files, no recursion is done to find subdirectories with js/css.

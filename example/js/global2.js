@@ -1,0 +1,1 @@
+console.log('Global 2 JS Included.');

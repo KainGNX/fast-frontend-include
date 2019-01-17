@@ -1,0 +1,19 @@
+## Excluding composer files for this fast-frontend-include project, this ignore is not really meant to be used elsewhere.
+composer.json
+composer.lock
+
+.env
+.vagrant
+/logs/*
+/tmp/*
+/vendor/*
+
+# Visual Studio Code
+.vscode
+
+## Homestead VM
+Homestead.yaml
+Vagrantfile
+Homestead.json
+after.sh
+aliases

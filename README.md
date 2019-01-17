@@ -8,15 +8,15 @@ First create an array with `js` and `css` keys each containing a list of relativ
 
 ```php
     $globalIncludes = [
-    'js' => [
-        'js/global1.js',
-        'js/global2.js'
-    ],
-    'css' => [
-        'css/global1.css',
-        'css/global2.css'
-    ]
-];
+        'js' => [
+            'js/global1.js',
+            'js/global2.js'
+        ],
+        'css' => [
+            'css/global1.css',
+            'css/global2.css'
+        ]
+    ];
 ```
 
 Then instantiate a `Context` class with first parameter being the `Context::contextKey` and second being the global includes. 

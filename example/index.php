@@ -1,5 +1,6 @@
 <?php 
-include(__DIR__ . '/../src/view/Context.php');
+include(__DIR__ . '/../src/view/BaseContext.php');
+include(__DIR__ . '/../src/view/PageContext.php');
 
 $globalIncludes = [
     'js' => [
@@ -12,7 +13,7 @@ $globalIncludes = [
     ]
 ];
 
-$viewContext = new \FastFrontend\View\Context('index', $globalIncludes);
+$viewContext = new \FastFrontend\View\PageContext('index', $globalIncludes);
 
 ?>
 <!DOCTYPE html>

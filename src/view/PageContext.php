@@ -1,16 +1,28 @@
 <?php
 /**
- * Context
+ * Page Context
  *
- * Base context class for views. Every context class should extend from this.
- * Wraps some of the environment variables that should not be used or repeated everywhere.
+ * Page context class for views. Focused on global and page specific output.
  *
  * @author  Jason Horvath <jason.horvath@greaterdevelopment.com>
  */
+
 namespace FastFrontend\View;
 
+use FastFrontend\View\BaseContext;
 
-class Context {
+class PageContext extends BaseContext {
+
+    /**
+     * Patterns for determing which files are remote
+     * 
+     * @const array REMOTE_URL_STARTS
+     */
+    const REMOTE_URL_PATTERNS = [
+        'https',
+        'http',
+        '//'
+    ];
 
     /**
      * Tag templates for output generation, referenced by key
@@ -30,31 +42,6 @@ class Context {
     /**
      * @var string
      */
-    protected $contextKey;
-
-    /**
-     * @var string
-     */
-    private $documentRoot;
-
-    /**
-     * @var string
-     */
-    private $protocol;
-
-    /**
-     * @var string
-     */
-    protected $domain;
-
-    /**
-     * @var string
-     */
-    protected $domainTrail;
-
-    /**
-     * @var string
-     */
     protected $jsRelative = 'js';
 
     /**
@@ -63,29 +50,29 @@ class Context {
     protected $cssRelative = 'css';
 
     /**
+     * @var bool
+     */
+    protected $cacheBust = false;
+
+    /**
      * Construct
      * 
      * @param string $contextKey
      * @param array $globalIncludes
+     * @return void
      */
     public function __construct(
         string $contextKey = '',
         array $globalIncludes = [])
     {
-
-        if(!empty($contextKey)) {
-            $this->initContext($contextKey);
-        }
         
+        parent::__construct($contextKey);
+
         $this->globalIncludes = [
             'js' => $globalIncludes['js'] ?? [],
             'css' => $globalIncludes['css'] ?? []
         ];
         
-        $this->setDocumentRoot();
-        $this->setProtocol();
-        $this->setDomain();
-        $this->setDomainTrail();
     }
 
     /**
@@ -95,54 +82,9 @@ class Context {
      */
     protected function initContext(string $contextKey)
     {
-        $this->contextKey = $contextKey;
+        parent::initContext($contextKey);
         $this->setJsRelative($this->jsRelative . '/' . $contextKey);
         $this->setCssRelative($this->cssRelative . '/' . $contextKey);
-    }
-
-    /**
-     * Set Document Root
-     *
-     * @return void
-     */
-    private function setDocumentRoot()
-    {
-        $this->documentRoot = $_SERVER['DOCUMENT_ROOT'];
-    }
-
-    /**
-     * Set Protocol
-     *
-     * @return void
-     */
-    private function setProtocol()
-    {
-        $this->protocol = (isset($_SERVER['HTTPS']) && !empty($_SERVER['HTTPS'])) ? 'https' : 'http';
-    }
-
-    /**
-     * Set Domain
-     *
-     * @return void
-     */
-    private function setDomain()
-    {
-        $this->domain = $_SERVER['HTTP_HOST'];
-    }
-
-    /**
-     * Set Domain Trail
-     * Depending on environment, used to compensate pathing,
-     * The domain trail could be just a slash, or the
-     *
-     * @return void
-     */
-    private function setDomainTrail() {
-        $selfParts = explode('/', $_SERVER['PHP_SELF']);
-        if(strpos(end($selfParts), '.php')) {
-            array_pop($selfParts);
-        }
-        $this->domainTrail = '/' . implode('/', $selfParts);
     }
 
     /**
@@ -200,17 +142,6 @@ class Context {
     }
 
     /**
-     * Full Root Path
-     * Basically and absolute path
-     *
-     * @param string $relativePath
-     * @return void
-     */
-    protected function fullRootPath(string $relativePath) {
-        return $this->documentRoot . '/' . $relativePath;
-    }
-
-    /**
      * Get Asset Tags
      *
      * @param string $tagType
@@ -226,8 +157,8 @@ class Context {
             foreach($assetList as $filename) {
                 $relativeFilePath = $assetRelative . '/' . $filename;
                 if(!in_array($relativeFilePath, $this->globalIncludes[$tagType])) {
-                    $httpFilePath = $this->httpFilePath($assetRelative, $filename);
-                    $tagOutput .= sprintf($tagTemplate, $httpFilePath);
+                    $fileUrl = $this->assembleFileUrl($relativeFilePath);
+                    $tagOutput .= sprintf($tagTemplate, $fileUrl);
                 }
             }
         }
@@ -266,38 +197,48 @@ class Context {
     {
         $appIncludesOutput = '';
         foreach($this->globalIncludes[$type] as $relFilename) {
-            $appIncludesOutput .= sprintf(self::INCLUDE_TAGS[$type], $this->httpRoot() . $relFilename);
+            $includeUrl = (!$this->isRemoteFilename($relFilename)) ? $this->assembleFileUrl($relFilename) : $relFilename;
+            $appIncludesOutput .= sprintf(self::INCLUDE_TAGS[$type], $includeUrl);
         }
         return $appIncludesOutput;
     }
-    
-    /**
-     * Http Root
-     *
-     * @return string
-     */
-    public function httpRoot() {
-        return $this->protocol . '://' . $this->domain . $this->domainTrail;
-    }
 
     /**
-     * Http File Path
-     *
-     * @return string
-     *
+     * Is Remote Filename
+     * 
+     * @param string $filename
+     * @return bool
      */
-    public function httpFilePath($relativePath, $filename)
+    protected function isRemoteFilename(string $filename)
     {
-        return $this->httpRoot() . $relativePath . '/' . $filename;
+        foreach(self::REMOTE_URL_PATTERNS as $pattern) {
+            if(strpos($filename, $pattern) === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
-     * Get Protocol
-     *
-     * @return string $protocol
+     * Assemble File Url
+     * 
+     * @param string $filename
+     * @return string
      */
-    public function getProtocol() {
-        return $this->protocol;
+    protected function assembleFileUrl(string $filename)
+    {
+        return $this->httpRoot() . $filename .= ($this->cacheBust) ? '?' . time() : '' ; 
+    }
+
+    /**
+     * Set Cache Bust
+     * 
+     * @param bool $cacheFlag
+     * @return void
+     */
+    public function setCacheBust(bool $cacheFlag)
+    {
+        $this->cacheBust = $cacheFlag;
     }
 
 }
